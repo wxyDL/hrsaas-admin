@@ -6,13 +6,13 @@
         <h3 class="title">Login Form</h3>
       </div>
 
-      <el-form-item prop="username">
+      <el-form-item prop="mobile">
         <span class="svg-container">
           <svg-icon icon-class="user" />
         </span>
         <el-input
           ref="username"
-          v-model="loginForm.username"
+          v-model="loginForm.mobile"
           placeholder="Username"
           name="username"
           type="text"
@@ -41,11 +41,11 @@
         </span>
       </el-form-item>
 
-      <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">Login</el-button>
+      <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">登录</el-button>
 
       <div class="tips">
-        <span style="margin-right:20px;">username: admin</span>
-        <span> password: any</span>
+        <span style="margin-right:20px;">手机号: 13800000002</span>
+        <span> 密码: 123456</span>
       </div>
 
     </el-form>
@@ -53,33 +53,34 @@
 </template>
 
 <script>
-import { validUsername } from '@/utils/validate'
+import { validMobile } from '@/utils/validate'
+// 引入辅助函数
+import { mapActions } from 'vuex'
 
 export default {
   name: 'Login',
   data() {
-    const validateUsername = (rule, value, callback) => {
-      if (!validUsername(value)) {
-        callback(new Error('Please enter the correct user name'))
-      } else {
-        callback()
-      }
-    }
-    const validatePassword = (rule, value, callback) => {
-      if (value.length < 6) {
-        callback(new Error('The password can not be less than 6 digits'))
+    const validateMobile = (rule, value, callback) => {
+      if (!validMobile(value)) {
+        callback(new Error('手机号格式不正确'))
       } else {
         callback()
       }
     }
     return {
       loginForm: {
-        username: 'admin',
-        password: '111111'
+        mobile: '13800000002',
+        password: '123456'
       },
       loginRules: {
-        username: [{ required: true, trigger: 'blur', validator: validateUsername }],
-        password: [{ required: true, trigger: 'blur', validator: validatePassword }]
+        mobile: [
+          { required: true, trigger: 'blur', message: '手机号不能为空' },
+          { trigger: 'blur', validator: validateMobile }
+        ],
+        password: [
+          { required: true, trigger: 'blur', message: '密码不能为空' },
+          { trigger: 'blur', min: 6, max: 16, message: '密码长度6到16位之间' }
+        ]
       },
       loading: false,
       passwordType: 'password',
@@ -95,6 +96,8 @@ export default {
     }
   },
   methods: {
+    // 调用vuex中的登录方法
+    ...mapActions(['user/login']),
     showPwd() {
       if (this.passwordType === 'password') {
         this.passwordType = ''
@@ -106,18 +109,22 @@ export default {
       })
     },
     handleLogin() {
-      this.$refs.loginForm.validate(valid => {
-        if (valid) {
+      // 手动校验登录
+      this.$refs.loginForm.validate(async isOK => {
+        try {
+          // 打开登录的特效
           this.loading = true
-          this.$store.dispatch('user/login', this.loginForm).then(() => {
-            this.$router.push({ path: this.redirect || '/' })
-            this.loading = false
-          }).catch(() => {
-            this.loading = false
-          })
-        } else {
-          console.log('error submit!!')
-          return false
+          // 手动校验成功之后调用vuex中的登录方法
+          if (isOK) {
+            await this['user/login'](this.loginForm)
+            // 登录成功之后跳转主页
+            this.$router.push('/')
+          }
+        } catch (error) {
+          console.log(error)
+        } finally {
+          // 关闭登录的特效
+          this.loading = false
         }
       })
     }
